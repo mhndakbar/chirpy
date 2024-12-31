@@ -15,12 +15,14 @@ import (
 type apiConfig struct {
 	fileServerHits atomic.Int64
 	dbQueires      *database.Queries
+	platform       string
 }
 
 func main() {
 	godotenv.Load()
 
 	dbURL := os.Getenv("DB_URL")
+	platform := os.Getenv("PLATFORM")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -34,6 +36,7 @@ func main() {
 	const port = "8080"
 	apiCfg := &apiConfig{
 		dbQueires: dnQueries,
+		platform:  platform,
 	}
 
 	// ServeMux is an HTTP request multiplexer.
@@ -46,8 +49,9 @@ func main() {
 	mux.Handle("/app/", apiCfg.middlewareMetricIncrement(http.StripPrefix("/app/", http.FileServer(http.Dir(filePathRoot))))) // serve static files(http.FileServer(http.Dir(".")))
 	mux.HandleFunc("GET /api/healthz", handlerHealth)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
-	mux.HandleFunc("POST /admin/reset", apiCfg.handlerResetMetrics)
+	mux.HandleFunc("POST /admin/reset", apiCfg.handlerDeleteAllUsers)
 	mux.HandleFunc("POST /api/validate_chirp", apiCfg.handlerValidateChirp)
+	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
