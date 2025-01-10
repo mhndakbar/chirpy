@@ -3,14 +3,20 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/mohndakbar/chirpy/internal/auth"
 )
 
+const (
+	DefaultExpiresInSeconds = 3600
+)
+
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type params struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email            string `json:"email"`
+		Password         string `json:"password"`
+		ExpiresInSeconds int    `json:"expires_in_seconds"`
 	}
 
 	reqParams := params{}
@@ -34,11 +40,22 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if reqParams.ExpiresInSeconds == 0 || reqParams.ExpiresInSeconds > DefaultExpiresInSeconds {
+		reqParams.ExpiresInSeconds = DefaultExpiresInSeconds
+	}
+
+	jwtToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, time.Duration(reqParams.ExpiresInSeconds)*time.Second)
+	if err != nil {
+		respondWithError(w, 500, err.Error())
+		return
+	}
+
 	responsdWithJson(w, 200, User{
 		ID:        user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email:     user.Email,
+		Token:     jwtToken,
 	})
 
 }

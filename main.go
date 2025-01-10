@@ -16,13 +16,24 @@ type apiConfig struct {
 	fileServerHits atomic.Int64
 	dbQueires      *database.Queries
 	platform       string
+	jwtSecret      string
 }
 
 func main() {
 	godotenv.Load()
 
 	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal("DB_URL must be set")
+	}
 	platform := os.Getenv("PLATFORM")
+	if platform == "" {
+		log.Fatal("PLATFORM must be set")
+	}
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET environment variable is not set")
+	}
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -37,6 +48,7 @@ func main() {
 	apiCfg := &apiConfig{
 		dbQueires: dnQueries,
 		platform:  platform,
+		jwtSecret: jwtSecret,
 	}
 
 	// ServeMux is an HTTP request multiplexer.

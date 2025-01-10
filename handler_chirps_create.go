@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/mohndakbar/chirpy/internal/auth"
 	"github.com/mohndakbar/chirpy/internal/database"
 )
 
@@ -23,15 +24,26 @@ type Chirp struct {
 }
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Can't validate JWT token")
+		return
+	}
+
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Can't validate JWT token")
+		return
+	}
+
 	type chirpRequest struct {
-		Body   string    `json:"body"`
-		UserId uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 
 	chirpParams := chirpRequest{}
 
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&chirpParams)
+	err = decoder.Decode(&chirpParams)
 	if err != nil {
 		respondWithError(w, 500, "Failed to parse request body")
 		return
@@ -45,7 +57,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 	NewChirp, err := cfg.dbQueires.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleaned,
-		UserID: chirpParams.UserId,
+		UserID: userID,
 	})
 
 	if err != nil {
