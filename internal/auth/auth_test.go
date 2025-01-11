@@ -107,5 +107,12 @@ func TestGetBearerToken(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, token, "")
 	})
+}
 
+func TestRefreshToken(t *testing.T) {
+	t.Parallel()
+
+	token, err := MakeRefreshToken()
+	require.NoError(t, err)
+	assert.NotNil(t, token)
 }
