@@ -116,3 +116,27 @@ func TestRefreshToken(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, token)
 }
+
+func TestGetApiKey(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Valid api key", func(t *testing.T) {
+		t.Parallel()
+		header := http.Header{}
+		header.Add("Authorization", "ApiKey apikey")
+
+		apiKey, err := GetAPIKey(header)
+		require.NoError(t, err)
+		assert.NotNil(t, apiKey)
+	})
+
+	t.Run("Invalid api key", func(t *testing.T) {
+		t.Parallel()
+		header := http.Header{}
+		header.Add("Authorization", "ApiKey ")
+
+		apiKey, err := GetAPIKey(header)
+		require.Error(t, err)
+		assert.Equal(t, apiKey, "")
+	})
+}

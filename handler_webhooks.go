@@ -5,9 +5,21 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/mohndakbar/chirpy/internal/auth"
 )
 
 func (cfg apiConfig) handlerCreateWebhook(w http.ResponseWriter, r *http.Request) {
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Can't validate api key")
+		return
+	}
+
+	if apiKey != cfg.polkaKey {
+		respondWithError(w, http.StatusUnauthorized, "Can't validate api key")
+		return
+	}
+
 	type data struct {
 		UserId uuid.UUID `json:"user_id"`
 	}
@@ -18,7 +30,7 @@ func (cfg apiConfig) handlerCreateWebhook(w http.ResponseWriter, r *http.Request
 
 	reqParams := params{}
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&reqParams)
+	err = decoder.Decode(&reqParams)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to parse request body")
 		return
